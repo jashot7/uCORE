@@ -134,6 +134,9 @@
 	<script type="text/javascript" src="{{ MEDIA_URL }}javascript/core.gearth/kmlobjectcreator.js"></script>
 	<script type="text/javascript" src="{{ MEDIA_URL }}javascript/core.gearth/kmlobjectstore.js"></script>
 	<script type="text/javascript" src="{{ MEDIA_URL }}javascript/core.gearth/gecontroller.js"></script>
+	<script type="text/javascript" src="{{ MEDIA_URL }}javascript/core.gmaps/gmapscontroller.js"></script>
+
+
 
 
 	<script type="text/javascript">
@@ -167,7 +170,7 @@
 
             // Create the maps controller
 	    // Uncomment this!
-	    // var gmapsController = new core.gmaps.GmapsController(gmaps, eventChannel);
+	    var gmapsController = new core.gmaps.GmapsController(gmaps, eventChannel);
             
                       
             $("#tabs").bind("tabsshow", function(event, ui) {

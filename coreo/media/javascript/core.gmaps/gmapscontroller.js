@@ -79,7 +79,7 @@ if (!window.core.gmaps)
 		},
 
 		add: function(geoData) {
-
+			alert("test");
 		    // Get overlay
 		    var overlay = this.kmlObjectStore.getKmlObject(geoData);
 
