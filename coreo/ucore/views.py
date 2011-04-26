@@ -25,11 +25,13 @@ from django.http import HttpResponse, HttpResponseRedirect,\
 from django.shortcuts import render_to_response, get_object_or_404
 from django.template import RequestContext
 from django.utils import simplejson as json
+from django.views.decorators.http import require_http_methods
 
 from coreo.ucore.models import *
 from coreo.ucore import shapefile, utils
 from httplib import HTTPResponse, HTTPConnection
-
+from xml.parsers.expat import ExpatError
+from django.contrib.auth.decorators import login_required
 
 def add_library(request):
   """
@@ -93,7 +95,6 @@ def create_library(request):
 
   if not user:
     logging.error('No user retrieved by the username of %s' % request.user)
-
     return HttpResponse('No user identified in request.')
 
   if request.method == 'POST':
@@ -125,9 +126,22 @@ def create_library(request):
   #   print e.message
   #   logging.error(e.message)
   else:
+    user = CoreUser.objects.get(username=request.user)
+
     return HttpResponse('only POST Supported.', status=405)
 
   return render_to_response('testgrid.html',  context_instance=RequestContext(request))
+
+
+@require_http_methods(["GET"])
+@login_required
+def return_libraries(request):
+  try:
+    user = CoreUser.objects.get(username=request.user)
+    results = user.libraries.all()
+  except CoreUser.DoesNotExist:
+    return render_to_response('login.html', context_instance=RequestContext(request))
+  return HttpResponse(serializers.serialize('json', results, use_natural_keys=True))
 
 
 def create_user(request):
@@ -184,8 +198,8 @@ def ge_index(request):
     # as long as the login_user view forces them to register if they don't already
     # exist in the db, then we should never actually get here. Still, better safe than sorry.
     return render_to_response('login.html', context_instance=RequestContext(request))
-
-  return render_to_response('geindex.html', {'user': user}, context_instance=RequestContext(request))
+  return render_to_response('map.html', {'user': user}, context_instance=RequestContext(request)) 
+  # return render_to_response('geindex.html', {'user': user}, context_instance=RequestContext(request))
 
 
 def gm_index(request):
@@ -361,7 +375,7 @@ def get_tags(request):
 def index(request):
   # If the user is authenticated, send them to the application.
   if request.user.is_authenticated():
-    return HttpResponseRedirect(reverse('coreo.ucore.views.ge_index'))
+    return HttpResponseRedirect(reverse('coreo.ucore.views.map_view'))
 
   # If the user is not authenticated, show them the main page.
   return render_to_response('index.html', context_instance=RequestContext(request))
@@ -386,11 +400,20 @@ def library_demo(request):
 
 def login(request):
   if request.method == 'GET':
-    return render_to_response('login.html', context_instance=RequestContext(request))
+    if 'next' in request.GET:
+      next = request.GET['next'].strip()
+    else:
+      next = ''
+    return render_to_response('login.html',{'next' : next }, context_instance=RequestContext(request))
   else:
     # authenticate the user viw username/password
     username = request.POST['username'].strip()
     password = request.POST['password'].strip()
+    next = '/map/'
+    if 'next' in request.POST:
+      next = request.POST['next'].strip()
+      if next == '':
+        next = '/map/'
 
     # check if the user already exists
     if not CoreUser.objects.filter(username__exact=username).exists():
@@ -401,7 +424,8 @@ def login(request):
     # The user has been succesfully authenticated. Send them to the GE app.
     if user:
       auth.login(request, user)
-      return HttpResponseRedirect(reverse('coreo.ucore.views.ge_index'))
+      # return HttpResponseRedirect(reverse('coreo.ucore.views.ge_index'))
+      return HttpResponseRedirect(next)
 
     return render_to_response('login.html',
           {'error_message': 'Invalid Username/Password Combination'},
@@ -432,24 +456,24 @@ def map_view(request):
   return render_to_response('map.html', {'user': user}, context_instance=RequestContext(request))
 
 
+@login_required
 def modify_settings(request):
-  if not request.user.is_authenticated():
-    return render_to_response('login.html', context_instance=RequestContext(request))
 
   user = get_object_or_404(CoreUser, username=request.user.username)
-
   if request.method == 'GET':
-    return render_to_response('settings.html', {'settings': user.settings, 'skin_list': Skin.objects.all()},
+    if 'saved' in request.GET:
+      saved_status = request.GET['saved'].strip()
+      return render_to_response('settings.html', {'settings': user.settings, 'skin_list': Skin.objects.all(), 'saved' : saved_status }, context_instance=RequestContext(request))
+    else:
+      return render_to_response('settings.html', {'settings': user.settings, 'skin_list': Skin.objects.all()},
         context_instance=RequestContext(request))
   elif request.method == 'POST':
     wants_emails = True if 'wants_emails' in request.POST else False
     skin = Skin.objects.get(name=request.POST['skin'].strip())
-
     user.settings.wants_emails = wants_emails
     user.settings.skin = skin
     user.settings.save()
-
-    return HttpResponseRedirect(reverse('coreo.ucore.views.modify_settings'))
+    return HttpResponseRedirect('/settings/?saved=True')
 
 
 def notifytest(request):
@@ -653,19 +677,21 @@ def trophy_room(request):
        }, context_instance=RequestContext(request))
 
 
-def test_chart(request):
-   return render_to_response('chart.html', context_instance=RequestContext(request))
-
-
 def update_user(request):
-  """
+  """ 
   Update the user's record in the DB.
   """
   if not request.user.is_authenticated():
     return render_to_response('login.html', context_instance=RequestContext(request))
   if request.method == 'GET':
     user = CoreUser.objects.get(username=request.user.username)
-    return render_to_response('register.html', context_instance=RequestContext(request))
+    try:
+      saved_status = request.GET['saved'].strip()
+    except Exception:
+      return render_to_response('userprofile.html', {'user': user}, context_instance=RequestContext(request))
+    return render_to_response('userprofile.html',
+        {'user': user, 'saved' : saved_status }, context_instance=RequestContext(request))
+   #  return render_to_response('register.html', context_instance=RequestContext(request))
   else:
     user = CoreUser.objects.filter(username=request.user.username)
     first_name = request.POST['first_name'].strip()
@@ -685,7 +711,7 @@ def update_user(request):
     if not (first_name and last_name and email and phone_number):
     # redisplay the registration page
       return render_to_response('userprofile.html',
-          {'user': user }, context_instance=RequestContext(request))
+          {'user': user, 'saved': 'False' }, context_instance=RequestContext(request))
 
     # update the user to the DB
     user = CoreUser.objects.get(sid=sid)
@@ -699,28 +725,38 @@ def update_user(request):
 
   # return an HttpResponseRedirect so that the data can't be POST'd twice if the user hits the back button
   # XXX should have a success msg when we redirect or the client call is ajax and we return "sucess" that way
-    return render_to_response('userprofile.html',
-        {'success_message': 'Profile successfully changed.', 'user': user },
-          context_instance=RequestContext(request))
+    return HttpResponseRedirect('/user-profile/?saved=True')
+    # return render_to_response('userprofile.html',
+    #    {'success_message': 'Profile successfully changed.', 'user': user },
+    #      context_instance=RequestContext(request))
+
 
 def update_password(request):
   if request.method == 'GET':
-    return render_to_response('password.html', context_instance=RequestContext(request))
+    try:
+      saved_status = request.GET['saved'].strip()
+    except Exception:
+      # OK the program couldn't find a saved parameter, so assign null.
+      return render_to_response('password.html', context_instance=RequestContext(request))
+    return render_to_response('password.html', { 'saved': saved_status }, context_instance=RequestContext(request))
   else:
     user = CoreUser.objects.get(username=request.user)
     oldpassword = request.POST['old'].strip()
     newpassword = request.POST['password'].strip()
+    if (oldpassword == newpassword):
+      return render_to_response('password.html', { 'error_message': 'You made the new password no different from the old one. Please try again.'}, context_instance=RequestContext(request))
     if user.check_password(oldpassword):
       user.set_password(newpassword)
       user.save()
-      return render_to_response('password.html',
-          {'success_message': 'Password successfully changed.'},
-          context_instance=RequestContext(request))
+      #return render_to_response('password.html',
+      #    {'success_message': 'Password successfully changed.'},
+      #    context_instance=RequestContext(request))
+      return HttpResponseRedirect('/update-password/?saved=True')
     else:
       return render_to_response('password.html',
-          {'error_message': 'Old Password Does Not Match'},
+           {'error_message': 'Old Password Does Not Match'},
            context_instance=RequestContext(request))
-
+       
 
 def upload_csv(request):
   if request.method == 'POST':
@@ -740,13 +776,16 @@ def user_profile(request):
 
   try:
     user = CoreUser.objects.get(username=request.user.username)
+    saved_status = request.GET['saved'].strip()
   except CoreUser.DoesNotExist:
     # as long as the login_user view forces them to register if they
     # don't already exist in the db, then we should never actually get here.
     # Still, better safe than sorry.
     return render_to_response('login.html', context_instance=RequestContext(request))
-
-  return render_to_response('userprofile.html', {'user': user}, context_instance=RequestContext(request))
+  except Exception:
+    # if there is no save_status then don't send anything
+    return render_to_response('userprofile.html', {'user': user}, context_instance=RequestContext(request))
+  return render_to_response('userprofile.html', {'user': user, 'saved': saved_status}, context_instance=RequestContext(request))
 
 def header_name(name):
     """Convert header name like HTTP_XXXX_XXX to Xxxx-Xxx:"""
@@ -756,55 +795,69 @@ def header_name(name):
     result = '-'.join(words) + ':'
     return result 
 
+@require_http_methods(["GET"])
+@login_required
 def kmlproxy(request):
-    if not request.user.is_authenticated():
-        return render_to_response('login.html', context_instance=RequestContext(request))
-    if (request.method != 'GET'):
-        return HttpResponseNotAllowed(['GET'])
     remoteUrl = request.META['QUERY_STRING']
     parsedRemoteUrl = urlparse(remoteUrl)
     if (parsedRemoteUrl.scheme != 'http' and parsedRemoteUrl.scheme != 'https'):
-        return HttpResponseBadRequest()
+        return HttpResponseBadRequest('Link contains invalid KML URL scheme - expected http or https')
     conn = None
     try:
         conn = HTTPConnection(parsedRemoteUrl.hostname, parsedRemoteUrl.port)
         headers = {}
         conn.request('GET', parsedRemoteUrl.path + '?' + parsedRemoteUrl.query, None, headers)
         remoteResponse = conn.getresponse()
-        # print remoteResponse.getheader('content-type')
         
-        # KMZ stuff should go here
-
-        if remoteResponse.getheader('content-type') == 'application/vnd.google-earth.kmz':
-          #  print 'Got a KMZ here.'
-          fileSample = cStringIO.StringIO(remoteResponse.read()) 
-          zfp = zipfile.ZipFile(fileSample, "r")
-          for name in zfp.namelist():
-            data = zfp.read(name)
-            kmlDom = parseString(data)
+        # parse KML into a DOM
+        contentType = remoteResponse.getheader('content-type')
+        kmlDom = None
+        if contentType.startswith('application/vnd.google-earth.kmz'):
+          # handle KMZ file, unzip and extract contents of doc.kml
+          kmlTxt = None
+          kmzBuffer = cStringIO.StringIO(remoteResponse.read())
+          try:
+            zipFile = zipfile.ZipFile(kmzBuffer, 'r')
+            # KMZ spec says zip will contain exactly one file, named doc.kml
+            kmlTxt = zipFile.read('doc.kml')
+          finally:
+            kmzBuffer.close()
+          try:
+            kmlDom = parseString(kmlTxt)
+          except ExpatError, e:
+            print 'ERROR: failed to parse KML - %s' % e
+            return HttpResponseServerError('Link contains invalid KML')
+        elif contentType.startswith('application/vnd.google-earth.kml+xml'):
+          try:
+            kmlDom = parse(remoteResponse)
+          except ExpatError, e:
+            print 'ERROR: failed to parse KML - %s' % e
+            return HttpResponseServerError('Link contains invalid KML')
         else:
-          # print remoteResponse.getheader('content-type')
-          kmlDom = parse(remoteResponse)
-        # print remoteUrl + kmlDom.toprettyxml('  ')
+          print 'ERROR: URL didn\'t return KML. Returned %s' % contentType
+          return HttpResponseServerError('Link doesn\'t contain KML (content-type was %s)' % contentType)
+
+        # Parse KML into a dictionary and then serialize the dictionary to JSON
         try:
-            kmlParser = KmlParser()
-            dict = None
-            try:
-                dict = kmlParser.kml_to_dict(node = kmlDom.documentElement, 
-                                             baseUrl = parsedRemoteUrl.geturl())
-            except ValueError, e:
-                print 'ERROR: failed to serialize KML document to dictionary - %s' % e
-                return HttpResponseNotFound()
-            jsonTxt = None
-            try:
-                jsonTxt = json.dumps(dict, indent = 2)
-            except ValueError, e:
-                print 'ERROR: Failed to serialize dictionary to JSON - %s' % e
-                return HttpResponseServerError()
-            response = HttpResponse(content = jsonTxt, 
-                                    status = remoteResponse.status,
-                                    content_type = 'application/json')
-            return response
+          # print remoteUrl + kmlDom.toprettyxml('  ')
+          kmlParser = KmlParser()
+          dict = None
+          try:
+              dict = kmlParser.kml_to_dict(node = kmlDom.documentElement, 
+                                           baseUrl = parsedRemoteUrl.geturl())
+          except ValueError, e:
+              print 'ERROR: failed to serialize KML document to dictionary - %s' % e
+              return HttpResponseNotFound('Couldn\'t parse KML from link')
+          jsonTxt = None
+          try:
+              jsonTxt = json.dumps(dict, indent = 2)
+          except ValueError, e:
+              print 'ERROR: Failed to serialize dictionary to JSON - %s' % e
+              return HttpResponseServerError('Couldn\'t serialize link\'s KML to JSON')
+          response = HttpResponse(content = jsonTxt, 
+                                  status = remoteResponse.status,
+                                  content_type = 'application/json')
+          return response
         finally:
             kmlDom.unlink()
     finally:
