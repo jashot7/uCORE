@@ -1,13 +1,18 @@
 .core-acoredion {
 }
 
+.core-acoredion .acoredion-search {
+	white-space: nowrap;
+	margin-bottom: 1em;
+}
+
 .core-acoredion .acoredion-search > * {
 	vertical-align: middle;
 }
 
 .core-acoredion .acoredion-search input[type="text"] {
 	height: 1.9em;
-	width: 250px;
+	width: 90%;
 }
 
 .core-acoredion .acoredion-search .ui-emptytext-empty {
@@ -23,7 +28,7 @@
 }
 
 .core-acoredion .acoredion-tree {
-	margin-top: 1em;
+	margin-top: 0.6em;
 }
 
 .core-acoredion .acoredion-tree-loading {
@@ -31,4 +36,17 @@
 	background-repeat:no-repeat !important;
 	background-position: 0 0 !important;
 	padding-left: 20px;
+}
+
+.core-acoredion .acoredion-tree-actions {
+	display: block;
+	position: fixed;
+	z-index: 1000;
+}
+
+.core-acoredion .acoredion-tree-actions span {
+	display: block;
+	clear: none;
+	float: left;
+	margin: .2em;
 }
