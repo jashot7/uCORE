@@ -543,7 +543,7 @@ if (!window.core.gearth)
 								this.kmlJsonProxyService.getKmlJson(absoluteUrl, $.proxy(function(kmlJson) {
 									this.createFromKmlJson(kmlJson, $.proxy(function(kmlObject) {
 										if (kmlObject && kmlObject.getElementsByType) {
-											var styleObjects = kmlObject.getElementsByType("KmlStyle");
+										var styleObjects = kmlObject.getElementsByType("KmlStyle");
 											for (var i = 0; i < styleObjects.getLength(); i++) {
 												var originalStyle = styleObjects.item(i);
 												var styleWithId = this.ge.createStyle(localStyleUrl);

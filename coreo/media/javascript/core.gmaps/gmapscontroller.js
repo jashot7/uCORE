@@ -22,7 +22,7 @@ if (!window.core.gmaps)
 (function(ns) {
 	var KmlObjectStore = core.gmaps.KmlObjectStore;
 	if (!KmlObjectStore)
-		throw "Dependency not found: core.gearth.KmlObjectStore";
+		throw "Dep<F13><F13><F13><F13><F13><F13><F13><F13><F13><F13><F13><F13><F13><F13><F13><F13><F13><F13><F13><F13><F13>endency not found: core.gearth.KmlObjectStore";
 	var ShowFeatureEvent = core.events.ShowFeatureEvent;
 	if (!ShowFeatureEvent)
 		throw "Dependency not found: core.events.ShowFeatureEvent";
