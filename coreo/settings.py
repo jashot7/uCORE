@@ -68,8 +68,7 @@ TEMPLATE_LOADERS = (
 )
 
 SERIALIZATION_MODULES = {
-    'json': 'wadofstuff.django.serializers.json'
-}
+   }
 
 MIDDLEWARE_CLASSES = (
     'django.middleware.common.CommonMiddleware',

@@ -20,9 +20,9 @@ if (!window.core.gmaps)
 	window.core.gmaps = {};
 
 (function(ns) {
-	var KmlObjectStore = core.gmaps.KmlObjectStore;
-	if (!KmlObjectStore)
-		throw "Dep<F13><F13><F13><F13><F13><F13><F13><F13><F13><F13><F13><F13><F13><F13><F13><F13><F13><F13><F13><F13><F13>endency not found: core.gearth.KmlObjectStore";
+	var MapsOverlayStore = core.gmaps.MapsOverlayStore;
+	if (!MapsOverlayStore)
+		throw "Dependency not found: core.gmaps.MapsOverlayStore";
 	var ShowFeatureEvent = core.events.ShowFeatureEvent;
 	if (!ShowFeatureEvent)
 		throw "Dependency not found: core.events.ShowFeatureEvent";
@@ -43,7 +43,7 @@ if (!window.core.gmaps)
 
 	var GmapsController = function(gmaps, eventChannel) {
 	    this.gmaps = gmaps;
-	    this.kmlObjectStore = new KmlObjectStore(this.gmaps);
+	    this.mapsOverlayStore = new MapsOverlayStore(this.gmaps);
 	    this.eventChannel = eventChannel;
 	    this._init();
 
@@ -77,58 +77,94 @@ if (!window.core.gmaps)
 			}
 
 		},
-
+		
+		update: function(geodate) {
+		    alert("update");
+		},
 		add: function(geoData) {
-			alert("test");
-		    // Get overlay
-		    var overlay = this.kmlObjectStore.getKmlObject(geoData);
+		    alert("add object!");
+		    console.log("maps-add(" + geoData.id + ")");
+		    this.mapsOverlayStore.getOrCreateMapsOverlay(geoData, $.proxy(function(mapsOverlay) {
+			console.log("Maps Overlay Created");
+			//this.ge.getFeatures().appendChild(kmlObject);
+			this.gmaps.addOverlay(mapsOverlay);
+		    }, this));
 
-		    // Add to map
-		    this.gmaps.addOverlay(overlay);
-
-
-		   /* //var kmlObject = this.kmlObjectStore.getKmlObject(geoData);
-		   		    
-		    // this.gmaps.addOverlay(kmlObject);
-
-		    var point = new GLatLng(37.4419, -122.1419);
-		    this.gmaps.addOverlay(new GMarker(point));
-
-		    var children = [];
-		    // Must parse the elements out of the kml
-		    geoData.iterateChildren(function(child) {
-			children.push(child);
-			});
-		    strictEqual(children.length, 2);
-
-		    // ?
-		    var placemarks = xmlDoc.documentElement.getElementsByTagName("Placemark");
-*/
-	    
+			    
 
 		},
 		
-		show: function(node) {
-
-		    var overlay = this.kmlObjectStore.getKmlObject(node);
-		    overlay.show();
-			
+		/**
+		 * Function: show
+		 * 
+		 * Displays a feature on the Google Maps instance.
+		 * 
+		 * Parameters:
+		 *   geoData - <GeoData>. The feature to display.
+		 */
+		show: function(geoData) {
+			//this._show(geoData, true);
+			alert("show object!");
 		},
-		
-		hide: function(node) {
 
-		    var overlay = this.kmlObjectStore.getKmlObject(node);
-		    overlay.hide();
+		/**
+		 * Function: hide
+		 * 
+		 * Removes a feature from the Google Maps instance.
+		 * 
+		 * Parameters:
+		 *   geoData - <GeoData>. The feature to be removed.
+		 */
+		hide: function(geoData) {
+			var mapsOverlayObject = this.mapsOverlayStore.getMapsOverlay(geoData);
+			if (mapsOverlayObject) {
+				alert("hide object!");
+			}
+		},
 
-			
+		/**
+		 * Function: info
+		 * 
+		 * Displays the information balloon for a feature on the Google Earth 
+		 * instance.
+		 * 
+		 * Parameters:
+		 *   geoData - <GeoData>. The feature for which to display the 
+		 *         information balloon.
+		 */
+		info: function(geoData) {
+			alert("info on object");
+
+			/*// TODO: look at parent GeoData nodes if this node doesn't exist
+			// TODO: allow showing info of a node even if it isn't being shown (checked)
+			this.ge.setBalloon(null);
+			var kmlObject = this.kmlObjectStore.getKmlObject(geoData);
+			if (kmlObject) {
+				var balloon = this.ge.createFeatureBalloon('');
+				balloon.setFeature(kmlObject);
+				// balloon.setMinWidth(400);
+				// balloon.setMaxHeight(400);
+				balloon.setCloseButtonEnabled(true);
+				this.ge.setBalloon(balloon);
+			}*/
 		},
-		
-		showNodeInfo: function(node) {
-			
-		},
-		
-		flyToNode: function(node) {
-			
+
+		/**
+		 * Function: flyTo
+		 * 
+		 * Pans the view of the Google Earth instance to a feature.
+		 * 
+		 * Parameters:
+		 *   geoData - <GeoData>. The feature to pan to.
+		 */
+		flyTo: function(geoData) {
+			alert("fly to object");
+			// TODO: look at parent GeoData nodes if this node doesn't exist.
+			// TODO: allow flying to a node even if it isn't being shown (checked)
+			/*var kmlObject = this.kmlObjectStore.getKmlObject(geoData);
+			if (kmlObject) {
+				this.gex.util.flyToObject(kmlObject, { boundsFallback: true });
+			}*/
 		}
 		
 	};

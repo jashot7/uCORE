@@ -8,15 +8,8 @@
 	<link rel="stylesheet" type="text/css" href="{{ MEDIA_URL }}css/ui-lightness/jquery-ui-1.8.6.custom.css" />
 	<link rel="stylesheet" type="text/css" href="{{ MEDIA_URL }}css/jquery.resultslist.css" />
 
-<<<<<<< HEAD
 	<link rel="stylesheet" type="text/css" href="{{ MEDIA_URL }}css/acoredion.css" />
 	<link rel="stylesheet" type="text/css" href="{{ MEDIA_URL }}css/geodatatree.css" />
-=======
-
-  <link rel="stylesheet" type="text/css" href="{{ MEDIA_URL }}css/acoredion.css" />
-
->>>>>>> e872f68a550abc4ebe7d28205c3d27b4aa0a417e
-
 	<link rel="stylesheet" type="text/css" href="{{ MEDIA_URL }}css/core.css" />
 
 	<style type="text/css">
@@ -139,6 +132,8 @@
 	<script type="text/javascript" src="{{ MEDIA_URL }}javascript/core.gearth/kmlobjectcreator.js"></script>
 	<script type="text/javascript" src="{{ MEDIA_URL }}javascript/core.gearth/kmlobjectstore.js"></script>
 	<script type="text/javascript" src="{{ MEDIA_URL }}javascript/core.gearth/gecontroller.js"></script>
+
+	<script type="text/javascript" src="{{ MEDIA_URL }}javascript/core.gmaps/mapsoverlaystore.js"></script>
 	<script type="text/javascript" src="{{ MEDIA_URL }}javascript/core.gmaps/gmapscontroller.js"></script>
 
 
@@ -192,8 +187,7 @@
             */
 			
             // Create the maps controller
-	    // Uncomment this!
-	   // var gmapsController = new core.gmaps.GmapsController(gmaps, eventChannel);
+	    var gmapsController = new core.gmaps.GmapsController(gmaps, eventChannel);
             
                       
             $("#tabs").bind("tabsshow", function(event, ui) {
